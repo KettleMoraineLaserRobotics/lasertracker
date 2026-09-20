@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:lasertracker/widgets/desktop/logview.dart';
-import 'package:lasertracker/widgets/desktop/membersview.dart';
-import 'package:lasertracker/widgets/desktop/teamview.dart';
-import 'package:lasertracker/widgets/mobile/logview.dart';
-import 'package:lasertracker/widgets/mobile/membersview.dart';
-import 'package:lasertracker/widgets/mobile/settingsview.dart';
-import 'package:lasertracker/widgets/mobile/teamview.dart';
+import 'package:lasertracker/widgets/desktop/log_view.dart';
+import 'package:lasertracker/widgets/desktop/members_view.dart';
+import 'package:lasertracker/widgets/desktop/team_view.dart';
+import 'package:lasertracker/widgets/mobile/log_view.dart';
+import 'package:lasertracker/widgets/mobile/members_view.dart';
+import 'package:lasertracker/widgets/mobile/settings_view.dart';
+import 'package:lasertracker/widgets/mobile/team_view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
                         pageIndex = index;
                       });
                     },
-                    leading: Image.asset("assets/tracker_icon.png", width: 64),
+                    leading: Image.asset("assets/images/tracker_icon.png", width: 64),
                     labelType: NavigationRailLabelType.all,
                     indicatorColor: const Color.fromARGB(48, 116, 249, 156),
                     destinations: const [

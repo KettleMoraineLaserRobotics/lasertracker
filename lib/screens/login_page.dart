@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             children: [
               Spacer(),
-              Image.asset("assets/tracker_logo-horizontal.png", height: 75, alignment: Alignment.center),
+              Image.asset("assets/images/tracker_logo-horizontal.png", height: 75, alignment: Alignment.center),
               const SizedBox(height: 16),
               TextField(
                 controller: groupKeyController,

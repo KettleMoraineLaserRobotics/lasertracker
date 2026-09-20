@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lasertracker/screens/accountcreate.dart';
-import 'package:lasertracker/screens/groupcreate.dart';
-import 'package:lasertracker/screens/homepage.dart';
-import 'package:lasertracker/screens/loginpage.dart';
-import 'package:lasertracker/screens/urlpage.dart';
-import 'package:lasertracker/widgets/mobile/settingsview.dart';
+import 'package:lasertracker/screens/account_create.dart';
+import 'package:lasertracker/screens/group_create.dart';
+import 'package:lasertracker/screens/home_page.dart';
+import 'package:lasertracker/screens/login_page.dart';
+import 'package:lasertracker/screens/url_page.dart';
+import 'package:lasertracker/widgets/mobile/settings_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme.dart';
 

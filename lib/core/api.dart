@@ -120,7 +120,7 @@ Future<Image> getTeamAvatar(String teamNum) async {
       }
     }
   }
-  return Image.asset("assets/first_icon.png");
+  return Image.asset("assets/images/first_icon.png");
 }
 
 Future<List<dynamic>> getEvents(String teamNum) async {
