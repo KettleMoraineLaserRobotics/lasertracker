@@ -4,18 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsView extends StatefulWidget {
-  const SettingsView({super.key});
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
   @override
-  State<SettingsView> createState() => _SettingsViewState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsViewState extends State<SettingsView> {
+class _SettingsPageState extends State<SettingsPage> {
   String groupKey = "";
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    groupKey = prefs.getString("loginGroupKey") ?? "hi";
+    groupKey = prefs.getString("loginGroupKey") ?? "Group key not found :(";
     setState(() {
       groupKey;
     });

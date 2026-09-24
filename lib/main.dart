@@ -5,7 +5,7 @@ import 'package:lasertracker/screens/group_create.dart';
 import 'package:lasertracker/screens/home_page.dart';
 import 'package:lasertracker/screens/login_page.dart';
 import 'package:lasertracker/screens/url_page.dart';
-import 'package:lasertracker/widgets/mobile/settings_view.dart';
+import 'package:lasertracker/screens/settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme.dart';
 
@@ -36,7 +36,7 @@ final GoRouter router = GoRouter(
   initialLocation: '/login',
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(path: "/settings", builder: (context, state) => const SettingsView()),
+    GoRoute(path: "/settings", builder: (context, state) => const SettingsPage()),
     GoRoute(path: '/url-change', builder: (context, state) => const URLPage()),
     GoRoute(path: '/account-create', builder: (context, state) => const AccountCreatePage()),
     GoRoute(path: '/group-create', builder: (context, state) => const GroupCreatePage()),

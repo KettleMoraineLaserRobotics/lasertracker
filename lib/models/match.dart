@@ -1,42 +1,4 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
-
-class WSMessage {
-  String? groupKey;
-  DateTime? timestamp;
-  String? infoType;
-  Map<String, dynamic>? payload;
-}
-
-void handleWSPayload(WSMessage message) {
-  switch(message.infoType) {
-    case "diff":
-      
-      break;
-    case "change":
-      // Handle change payload
-      break;
-    case "query":
-      // Handle query payload
-      break;
-  }
-}
-
-class Group {
-  String? groupName;
-  String? eventKey;
-  int? teamNum;
-  String? teamAvatarB64;
-  String? groupkey;
-
-  Image teamAvatar() {
-    return Image.memory(base64Decode(teamAvatarB64!));
-  }
-
-  void changeEventKey(String newKey) {
-
-  }
-}
+part of 'models.dart';
 
 class Match {
   int? red1;
@@ -48,12 +10,19 @@ class Match {
   int? matchNum;
   String? matchKey;
   String? eventKey;
+  /*
+  Having the event key may seem redundant, but allowd the app to be able
+  to seperate matches by an event, since groups are able to switch events.
+  Most useful at something like worlds where your matches on Newton are kept
+  seperate from your matches on Einstien. Idk, it was the best way to do 
+  that that I could think of.
+  */
   DateTime? timestamp;
 
   Future getMatchName() async {
     String matchCode = matchKey!.replaceAll("{$eventKey!}_", "");
     String matchName = "Unknown";
-    
+
     if (matchCode.startsWith("qm")) {
       matchName = "Quals ${matchCode.replaceFirst("qm", "")}";
     } else if (matchCode.startsWith("sf")) {
@@ -102,72 +71,6 @@ class Match {
         matchName = "Finals ${matchCode.replaceFirst("f", "")}";
       }
     }
-  return matchName;
-  }
-}
-
-class LogEntry {
-  String? username;
-  String? action;
-  DateTime? timestamp;
-}
-
-class Battery {
-  String? name;
-  String? status;
-  int? matchesUsed;
-  String? notes;
-  DateTime? timestamp;
-
-  void addBattery() {
-
-  }
-
-  void removeBattery() {
-
-  }
-
-  void changeBatteryStatus() {
-
-  }
-}
-
-class Member {
-  String? userName;
-  String? displayName;
-  String? job;
-  String? role;
-  String? location;
-  bool? isAdmin;
-
-  void setJob() {
-
-  }
-
-  void setRole() {
-
-  }
-
-  void setLocation() {
-
-  }
-
-  void removeMember() {
-
-  }
-
-}
-
-class User extends Member {
-  void setOwnJob() {
-
-  }
-
-  void setOwnRole() {
-
-  }
-
-  void setOwnLocation() {
-
+    return matchName;
   }
 }

@@ -4,7 +4,7 @@ import 'package:lasertracker/widgets/desktop/members_view.dart';
 import 'package:lasertracker/widgets/desktop/team_view.dart';
 import 'package:lasertracker/widgets/mobile/log_view.dart';
 import 'package:lasertracker/widgets/mobile/members_view.dart';
-import 'package:lasertracker/widgets/mobile/settings_view.dart';
+import 'package:lasertracker/screens/settings_page.dart';
 import 'package:lasertracker/widgets/mobile/team_view.dart';
 
 class HomePage extends StatefulWidget {
@@ -17,9 +17,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int pageIndex = 0;
 
-  final List<Widget> desktopPages = const [DesktopTeamView(), DesktopMembersView(), DesktopLogView(), SettingsView()];
+  final List<Widget> desktopPages = const [DesktopTeamView(), DesktopMembersView(), DesktopLogView(), SettingsPage()];
 
-  final List<Widget> mobilePages = const [MobileTeamView(), MobileMembersView(), MobileLogView(), SettingsView()];
+  final List<Widget> mobilePages = const [MobileTeamView(), MobileMembersView(), MobileLogView(), SettingsPage()];
 
   @override
   Widget build(BuildContext context) {
