@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:lasertracker/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -32,5 +33,25 @@ class WebSocketService {
   void disconnect() {
     channel?.sink.close();
     eventController.close();
+  }
+
+  void handleWSPayload(WSMessage message) {
+    switch (message.infoType) {
+      case "sync": // Batch of all applicable data
+        break;
+      case "member": // Info about a member(s)
+        // Handle change payload
+        break;
+      case "battery": // Info about a battery(s)
+        // Handle query payload
+        break;
+      case "group": // Info about the group
+        // Handle query payload
+        break;
+      case "match": // Info about a match(es)
+
+      case "logs":
+
+    }
   }
 }
