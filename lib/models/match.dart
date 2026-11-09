@@ -1,8 +1,6 @@
 part of 'models.dart';
 
-@collection
 class Match {
-  Id id = Isar.autoIncrement;
   int? red1;
   int? red2;
   int? red3;

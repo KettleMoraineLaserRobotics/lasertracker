@@ -1,8 +1,6 @@
 part of 'models.dart';
 
-@collection
 class Member {
-  Id id = Isar.autoIncrement;
   String? userName;
   String? displayName;
   String? job;

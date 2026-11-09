@@ -2,7 +2,6 @@ library;
 
 import 'dart:convert';
 
-import 'package:isar/isar.dart';
 import 'package:flutter/material.dart';
 
 part 'battery.dart';
