@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:lasertracker/core/fake_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> _saveSessionData(Map<String, dynamic> data, String pin) async {
@@ -108,6 +109,10 @@ Future<String> getTeamName(String teamNum) async {
 }
 
 Future<Image> getTeamAvatar(String teamNum) async {
+  if (useFakeData) {
+    return Image.asset("../assets/images/avatar.png");
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
 
@@ -137,6 +142,10 @@ Future<List<dynamic>> getEvents(String teamNum) async {
 }
 
 Future<List<dynamic>> getMatches(String teamNum, String eventKey) async {
+  if (useFakeData) {
+    return fakeMatches();
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
 
@@ -149,6 +158,10 @@ Future<List<dynamic>> getMatches(String teamNum, String eventKey) async {
 }
 
 Future<bool> isAdmin() async {
+  if (useFakeData) {
+    return fakeMember(fakeUsername)!["is_admin"] == 1;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -166,6 +179,10 @@ Future<bool> isAdmin() async {
 }
 
 Future<List<dynamic>> getMembers() async {
+  if (useFakeData) {
+    return fakeMembers.map((m) => Map<String, dynamic>.from(m)).toList();
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -185,6 +202,14 @@ Future<List<dynamic>> getMembers() async {
 }
 
 Future<bool> setStatus() async {
+  if (useFakeData) {
+    final prefs = await SharedPreferences.getInstance();
+    final me = fakeMember(fakeUsername)!;
+    me["location"] = prefs.getString("location") ?? "";
+    me["job"] = prefs.getString("job") ?? "";
+    return true;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -209,6 +234,10 @@ Future<bool> setStatus() async {
 }
 
 Future<bool> changePin(String targetUsername, String newPin) async {
+  if (useFakeData) {
+    return true;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -239,6 +268,14 @@ Future<bool> changePin(String targetUsername, String newPin) async {
 }
 
 Future<bool> changeRole(String targetUsername, String newRole) async {
+  if (useFakeData) {
+    fakeMember(targetUsername)?["role"] = newRole;
+    if (targetUsername == fakeUsername) {
+      await (await SharedPreferences.getInstance()).setString("role", newRole);
+    }
+    return true;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -274,6 +311,13 @@ Future<bool> changeRole(String targetUsername, String newRole) async {
 }
 
 Future<bool> updateGroup(String groupName, String eventKey) async {
+  if (useFakeData) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("group_name", groupName);
+    await prefs.setString("event_key", eventKey);
+    return true;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -296,6 +340,11 @@ Future<bool> updateGroup(String groupName, String eventKey) async {
 }
 
 Future<bool> changeAdmin(String targetUsername, bool status) async {
+  if (useFakeData) {
+    fakeMember(targetUsername)?["is_admin"] = status ? 1 : 0;
+    return true;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -328,6 +377,10 @@ Future<bool> changeAdmin(String targetUsername, bool status) async {
 }
 
 Future<List<dynamic>> getLogs() async {
+  if (useFakeData) {
+    return fakeLogs();
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final groupKey = prefs.getString("loginGroupKey");
@@ -347,6 +400,10 @@ Future<List<dynamic>> getLogs() async {
 }
 
 Future<List<dynamic>> getStream() async {
+  if (useFakeData) {
+    return fakeStreams;
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final serverURL = prefs.getString("backendURL");
   final eventKey = prefs.getString("event_key");

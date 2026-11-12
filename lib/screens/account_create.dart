@@ -32,83 +32,83 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: ListView(
-            children: [
-              SizedBox(height: 16),
-              TextField(
-                controller: groupKeyController,
-                decoration: InputDecoration(labelText: "Group Key", border: OutlineInputBorder()),
-              ),
-              Text(
-                "This is the group key given to you by your mentor/coach",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: displayNameController,
-                decoration: InputDecoration(labelText: "Display Name", border: OutlineInputBorder()),
-              ),
-              Text(
-                "This is the name that will be displyed to other members in the group",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: usernameController,
-                decoration: InputDecoration(labelText: "Username", border: OutlineInputBorder()),
-              ),
-              Text(
-                "This is the name you will use to log in to the group",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: pinController,
-                decoration: InputDecoration(labelText: "Pin/Password", border: OutlineInputBorder()),
-              ),
-              Text(
-                "This is the password you will use to log in to the group",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () async {
-                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+          child: Center(child: SingleChildScrollView(child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 750), child: Column(
+                  children: [
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: groupKeyController,
+                      decoration: InputDecoration(labelText: "Group Key", border: OutlineInputBorder()),
+                    ),
+                    Text(
+                      "This is the group key given to you by your mentor/coach",
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: displayNameController,
+                      decoration: InputDecoration(labelText: "Display Name", border: OutlineInputBorder()),
+                    ),
+                    Text(
+                      "This is the name that will be displyed to other members in the group",
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: usernameController,
+                      decoration: InputDecoration(labelText: "Username", border: OutlineInputBorder()),
+                    ),
+                    Text(
+                      "This is the name you will use to log in to the group",
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: pinController,
+                      decoration: InputDecoration(labelText: "Pin/Password", border: OutlineInputBorder()),
+                    ),
+                    Text(
+                      "This is the password you will use to log in to the group",
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-                  setState(() {
-                    isLoading = true;
-                  });
+                        setState(() {
+                          isLoading = true;
+                        });
 
-                  try {
-                    if (await memberAdd(
-                          usernameController.text,
-                          displayNameController.text,
-                          pinController.text,
-                          groupKeyController.text,
-                        ) ==
-                        true) {
-                      context.go('/home');
-                    }
-                  } catch (e) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: Text("Error: ${e.toString()}"),
-                        behavior: SnackBarBehavior.floating,
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    );
-                  }
+                        try {
+                          if (await memberAdd(
+                                usernameController.text,
+                                displayNameController.text,
+                                pinController.text,
+                                groupKeyController.text,
+                              ) ==
+                              true) {
+                            context.go('/home');
+                          }
+                        } catch (e) {
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(
+                              content: Text("Error: ${e.toString()}"),
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.all(16),
+                            ),
+                          );
+                        }
 
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-                child: isLoading
-                    ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                    : Text("Create Account"),
-              ),
-            ],
-          ),
+                        setState(() {
+                          isLoading = false;
+                        });
+                      },
+                      child: isLoading
+                          ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                          : Text("Create Account"),
+                    ),
+                  ],
+                ),),))
         ),
       ),
     );

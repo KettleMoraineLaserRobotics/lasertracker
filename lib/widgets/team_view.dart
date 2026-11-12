@@ -28,6 +28,8 @@ class _TeamViewState extends State<TeamView> {
 
   Timer? refreshTimer;
 
+  static const bool useFakeData = bool.fromEnvironment('FAKE_DATA');
+
   @override
   void initState() {
     super.initState();
@@ -195,13 +197,17 @@ class _TeamViewState extends State<TeamView> {
         ),
         const SizedBox(width: 16),
         if (wide)
-          Text("$groupName | Team $teamNum", style: titleLarge)
+          Column(children: [
+            Text("$groupName | Team $teamNum", style: titleLarge),
+            if (useFakeData) const Text("Testing mode is on. Fake data will be used.", style: TextStyle(color: Colors.red)),
+          ],)
         else ...[
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(groupName, style: titleLarge),
               Text("Team $teamNum"),
+              if (useFakeData) const Text("Testing mode is on. Fake data will be used.", style: TextStyle(color: Colors.red)),
             ],
           ),
           const Spacer(),
@@ -346,23 +352,33 @@ class _TeamViewState extends State<TeamView> {
                   ? const Text("No drive team members")
                   : SizedBox(
                       height: 80,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: driveTeam.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(driveTeam[index]["display_name"], textAlign: TextAlign.center),
-                                Text(
-                                  driveTeam[index]["job"].toString().replaceAll("Drive Team - ", ""),
-                                  textAlign: TextAlign.center,
-                                ),
-                                Text(driveTeam[index]["location"]),
-                              ],
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  for (final member in driveTeam)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Text(member["display_name"], textAlign: TextAlign.center, style: TextStyle(fontSize: 22),),
+                                          Text(
+                                            member["job"].toString().replaceAll("Drive Team - ", ""),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          Text(member["location"]),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           );
                         },

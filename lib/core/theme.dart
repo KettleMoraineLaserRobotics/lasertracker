@@ -82,7 +82,7 @@ final ThemeData laserTheme = ThemeData(
   ),
 
   sliderTheme: SliderThemeData(
-    activeTrackColor: const Color(0xFF74F99C),
+    activeTrackColor: const Color(0xff00ff92),
     thumbColor: const Color(0xFFFFFFFF),
     inactiveTrackColor: Colors.grey.shade800,
     valueIndicatorColor: Colors.white

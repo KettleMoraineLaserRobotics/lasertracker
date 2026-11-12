@@ -48,6 +48,7 @@ class _MembersViewState extends State<MembersView> {
   Future<bool>? isAdminFuture;
 
   Timer? refreshTimer;
+  final ScrollController locationScrollController = ScrollController();
 
   final TextEditingController locationController = TextEditingController();
   final TextEditingController jobController = TextEditingController();
@@ -91,6 +92,7 @@ class _MembersViewState extends State<MembersView> {
     customLocationController.dispose();
     newPinController.dispose();
     refreshTimer?.cancel();
+    locationScrollController.dispose();
     super.dispose();
   }
 
@@ -395,15 +397,25 @@ class _MembersViewState extends State<MembersView> {
                     .toList();
 
                 if (wide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: locationTables
-                        .map(
-                          (table) => Expanded(
-                            child: Padding(padding: const EdgeInsets.only(right: 16, bottom: 32), child: table),
-                          ),
-                        )
-                        .toList(),
+                  return Scrollbar(
+                    controller: locationScrollController,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: locationScrollController,
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: locationTables
+                            .map(
+                              (table) => SizedBox(
+                                width: 420,
+                                child: Padding(padding: const EdgeInsets.only(right: 16, bottom: 16), child: table),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
                   );
                 }
                 return Column(children: locationTables);
@@ -444,44 +456,49 @@ class _MembersViewState extends State<MembersView> {
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            children: [
-              cell("Name", headerStyle),
-              cell("Role", headerStyle),
-              cell("Job", headerStyle),
-              canEditUser ? const SizedBox(width: 48) : const SizedBox(width: 0),
-            ],
-          ),
+          child: Row(children: [cell("Name", headerStyle), cell("Role", headerStyle), cell("Job", headerStyle)]),
         ),
         ...list.map<Widget>((member) {
           final name = member["display_name"] ?? "";
           final role = member["role"] ?? "";
           final job = member["job"] ?? "";
 
+          final row = Row(
+            children: [
+              cell(name, textTheme.titleSmall),
+              cell(role, textTheme.titleSmall),
+              cell(job, textTheme.titleSmall),
+            ],
+          );
+
+          if (!canEditUser) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(children: [const Divider(), row]),
+            );
+          }
+
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              children: [
-                const Divider(),
-                Row(
-                  children: [
-                    cell(name, textTheme.titleSmall),
-                    cell(role, textTheme.titleSmall),
-                    cell(job, textTheme.titleSmall),
-                    canEditUser
-                        ? IconButton.filled(
-                            onPressed: () async {
-                              final bool? updated = await showEditDialog(context, role, scaffoldMessenger, member);
-                              if (updated == true) {
-                                setState(() {});
-                              }
-                            },
-                            icon: const Icon(Icons.edit),
-                          )
-                        : const SizedBox(width: 0),
-                  ],
+            padding: const EdgeInsets.only(top: 8),
+            child: Tooltip(
+              message: "Edit $name",
+              child: Material(
+                color: Color.fromARGB(50, 0, 255, 145),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  mouseCursor: SystemMouseCursors.click,
+                  onTap: () async {
+                    final bool? updated = await showEditDialog(context, role, scaffoldMessenger, member);
+                    if (updated == true) {
+                      setState(() {});
+                    }
+                  },
+                  child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14), child: row),
+                ),
+              ),
             ),
           );
         }),
