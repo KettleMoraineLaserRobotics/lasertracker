@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lasertracker/core/api.dart';
 
-class MobileLogView extends StatefulWidget {
-  const MobileLogView({super.key});
+class LogView extends StatefulWidget {
+  const LogView({super.key});
 
   @override
-  State<MobileLogView> createState() => _MobileLogViewState();
+  State<LogView> createState() => _LogViewState();
 }
 
-class _MobileLogViewState extends State<MobileLogView> {
+class _LogViewState extends State<LogView> {
   Future<List<dynamic>>? logsFuture;
   Timer? refreshTimer;
 
@@ -37,7 +37,7 @@ class _MobileLogViewState extends State<MobileLogView> {
       logsFuture = getLogs();
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
