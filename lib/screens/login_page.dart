@@ -102,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             children: [
               Spacer(),
-              Image.asset("../assets/images/tracker_logo-horizontal.png", height: 75, alignment: Alignment.center),
+              Image.asset("assets/images/tracker_logo-horizontal.png", height: 75, alignment: Alignment.center),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 750),
                 child: Column(

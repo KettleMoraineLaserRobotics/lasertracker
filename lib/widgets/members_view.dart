@@ -502,6 +502,7 @@ class _MembersViewState extends State<MembersView> {
             ),
           );
         }),
+        SizedBox(height: 16)
       ],
     );
   }

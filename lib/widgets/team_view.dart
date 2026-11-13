@@ -207,7 +207,7 @@ class _TeamViewState extends State<TeamView> {
             children: [
               Text(groupName, style: titleLarge),
               Text("Team $teamNum"),
-              if (useFakeData) const Text("Testing mode is on. Fake data will be used.", style: TextStyle(color: Colors.red)),
+              if (useFakeData) const Text("Testing mode is on.", style: TextStyle(color: Colors.red)),
             ],
           ),
           const Spacer(),

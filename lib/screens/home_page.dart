@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
                     pageIndex = index;
                   });
                 },
-                leading: Image.asset("../assets/images/tracker_icon.png", width: 64),
+                leading: Image.asset("assets/images/tracker_icon.png", width: 64),
                 labelType: NavigationRailLabelType.all,
                 indicatorColor: const Color.fromARGB(48, 116, 249, 156),
                 destinations: const [

@@ -110,7 +110,7 @@ Future<String> getTeamName(String teamNum) async {
 
 Future<Image> getTeamAvatar(String teamNum) async {
   if (useFakeData) {
-    return Image.asset("../assets/images/avatar.png");
+    return Image.asset("assets/images/avatar.png");
   }
 
   final prefs = await SharedPreferences.getInstance();

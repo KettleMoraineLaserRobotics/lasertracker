@@ -53,25 +53,16 @@ class _LogViewState extends State<LogView> {
           }
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
             final data = snapshot.data as List<dynamic>;
-            return Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      DateTime dt = DateTime.fromMillisecondsSinceEpoch(
-                        (data[index]["timestamp"] * 1000).round(),
-                      ).toLocal();
-                      String action = data[index]["action"];
-                      String username = data[index]["username"];
-                      return Text("[$dt] $username $action");
-                    },
-                  ),
-                ],
-              ),
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                DateTime dt = DateTime.fromMillisecondsSinceEpoch((data[index]["timestamp"] * 1000).round()).toLocal();
+                String action = data[index]["action"];
+                String username = data[index]["username"];
+                return Text("[$dt] $username $action");
+              },
             );
           }
           return const Center(
