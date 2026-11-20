@@ -3,46 +3,50 @@
 # Laser Tracker
 A multiplatform application allowing FRC teams to track the statuses of thier members while at competitions. Developed by Team 2077 Laser Robotics.
 ### AI Use in this project was in accordance with the Laser Robotics bylaws
+*"8.3, The use of primarily AI generated content in published team materials such as the Impact Essay, Safety Animation, or Robot code is prohibited. This does not prohibit team members from using AI to assist in their duties however."*
 
-## How does it work?
-A member of a team creates a group along with thier username and password. That account is now the lead member of that group. This account is also given the group's 'join key'. It is suggested to have a mentor or coach use this account.
-
-When a group is created, it is associated with a team and event, so new groups are required for each event a team participates in. This allows the app to show stats specific to your team, such as upcoming matches.
-
-With the join key provided by the lead member, other members can now create an account inside the group.
+## What Does It Do?
+Laser Tracker allows teams to easily track the locations, roles, and jobs of thier members at competitions. 
 
 The app tracks the following about each member
-* Location (stands, cafeteria, pit, juding room)
-* Job (drive team, impact team, pit crew)
-* Role (drive team roles, safety captain)
-* Status (in match, in judging, free)
+* Location (stands, cafeteria, pit, juding room, etc...)
+* Job (drive team, impact team, pit crew, etc...)
+* Role (coach, mentor, student)
+
+Laser Tracker can also function as a pit display on large screens or tablets. In this view it displays your team's next and upcoming matches, drive team members, and the event stream. 
+
+## How Do I Use It?
+Laser Tracker can be accessed from https://lasertracker.laserrobotics.org or installed as an APK on android devices.
+
+At the start of an event, a team member (preferably an adult) creates a group for thier team and becomes an admin of it. Once created, the group code can be shared to other members who can then use it to create an account and join the group. Accounts are group specific and can have thier pin, job, location, or role changed by the admins of the assoicated group.
+
+As the event goes on members update their location and job to reflect where they are and what they are doing. Custom locations and jobs can also be set.
+
+A group's event can be changed if needed, but is only reccomended in circumstances such as Worlds where the event key and "event" changes depending on if you make it to Einsteins, while still being the same event in actuality. Doing this makes sure that the displayed schedule and streams are updated while keeping a connected history of the group at the event.
 
 ## How does it work, technically?
 Laser Tracker is built with Flutter. This allows the project to be ran on many different platforms such as the web and Android, both of which Laser Tracker is configured for.
 
-The backend ([Laser Tracker Server](https://github.com/Raktbastr/lasertracker_server)) is a Python Flask app which manages a Sqlite database, proxies various requests to and from The Blue Alliance's APIv3, and hosts various API endpoints. The Sqlite database stores all the user and group information, while TBA handles team avatars, names, events, and match info.
+The backend server ([Laser Tracker Server](https://github.com/Raktbastr/lasertracker_server)) manages the database, event data syncing, and websocket connections. It does NOT host the app itself.
 
-Laser Robotics hosts an instance of Laser Tracker Server at https://api.lasertracker.laserrobotics.org, which serves as the default in the app.
+Laser Robotics hosts an instance of Laser Tracker Server at https://api.lasertracker.laserrobotics.org, which serves as the default in the app. If you prefer, you are encouraged to go and run your own instance of the server or client for your team. You are able to easily change the server URL from the login screen of the app. If you host a custom version of the server it is NOT necesscary to host the web app as well. All versions of the app including our own host of it (https://lasertracker.laserrobotics.org) can be configured to use a different server url. 
 
 ## Planned features
-* Battery checking
-
-## Installation and use
-Laser Tracker does not require any installation and can be accessed at https://lasertracker.laserrobotics.org.
-
-But for those who prefer, we provide APK files for Android users.
+* Light theme, team theme, and system color pallete
+* Event changing
+* Improved logging
 
 ## Build/Hosting Instructions
 ### Laser Tracker
 1. Make sure you have the Flutter SDK properly installed + Android tools if needed.
 2. In the project root run `flutter pub get` to install any dependencies.
 3. Run `flutter build <platform>` where platform is either `web` or `apk`
-4. What to do with your build files.
+4. What to do with your build files:
     * Web: Host a webserver pointing to index.html.
-    * apk: Install the apk either through adb or Android itself.
-### Laser Tracker Server
-1. Create an enter a Python virtual environment in the project root.
-2. Install the required python packages with `pip install -r requirements.txt`.
-3. Make a Blue Alliance read API key which can be done from the [account page](http://www.thebluealliance.com/account).
-4. Run main.py, it will walk you through the inital settings. Paste in your api key when asked.
-5. Make sure the server is accessible from the internet, and that Laser Tracker is configured to use it instead of the default. The server is ran by default on port 2077.
+    * apk: Install the apk
+
+### Laser Tracker Server (Without Docker)
+1. Run installation script (link here when I get to it)
+
+### Laser Tracker Server (With Docker)
+idk tbh, ill figure it out before release lol

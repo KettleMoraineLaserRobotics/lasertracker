@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:lasertracker/core/fake_data.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lasertracker/core/websocket_service.dart';
 import '../core/api.dart';
+import 'package:lasertracker/widgets/error_snack.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,14 +23,17 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> loadData() async {
     if (useFakeData) {
-      groupKeyController.text = "FAKE2077";
-      usernameController.text = "you";
-      pinController.text = "0000";
+      groupKeyController.text = fakeGroupKey;
+      usernameController.text = fakeUsername;
+      pinController.text = fakePin;
     } else {
-      final prefs = await SharedPreferences.getInstance();
-      groupKeyController.text = prefs.getString("loginGroupKey") ?? '';
-      usernameController.text = prefs.getString("loginUsername") ?? '';
-      pinController.text = prefs.getString("loginPin") ?? '';
+      const storage = FlutterSecureStorage();
+      final groupKey = await storage.read(key: 'group_key');
+      final username = await storage.read(key: 'username');
+      final pin = await storage.read(key: 'pin');
+      groupKeyController.text = groupKey ?? '';
+      usernameController.text = username ?? '';
+      pinController.text = pin ?? '';
     }
   }
 
@@ -46,8 +52,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> showUrlDialog() async {
-    final prefs = await SharedPreferences.getInstance();
-    final backendURLController = TextEditingController(text: prefs.getString('backendURL') ?? '');
+    final serverURLController = TextEditingController();
+    final savedURL = Hive.box('meta').get('server_url');
+    if (savedURL != null && savedURL != 'https://api.lasertracker.laserrobotics.org') {
+      serverURLController.text = savedURL;
+    }
     if (!mounted) return;
     await showDialog<bool>(
       context: context,
@@ -65,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: backendURLController,
+                  controller: serverURLController,
                   decoration: const InputDecoration(
                     labelText: "https://api.lasertracker.laserrobotics.org",
                     border: OutlineInputBorder(),
@@ -77,9 +86,11 @@ class _LoginPageState extends State<LoginPage> {
           actions: <Widget>[
             ElevatedButton(
               onPressed: () async {
-                await prefs.setString(
-                  'backendURL',
-                  backendURLController.text == "" ? "https://api.lasertracker.laserrobotics.org" : backendURLController.text,
+                await Hive.box('meta').put(
+                  'server_url',
+                  serverURLController.text == ""
+                      ? "https://api.lasertracker.laserrobotics.org"
+                      : serverURLController.text,
                 );
                 if (context.mounted) Navigator.pop(context, true);
               },
@@ -90,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
     );
-    backendURLController.dispose();
+    serverURLController.dispose();
   }
 
   @override
@@ -108,7 +119,8 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-                    if (useFakeData) const Text("Testing mode is on. Fake data will be used.", style: TextStyle(color: Colors.red),),
+                    if (useFakeData)
+                      const Text("Testing mode is on. Fake data will be used.", style: TextStyle(color: Colors.red)),
                     const SizedBox(height: 16),
                     TextField(
                       controller: groupKeyController,
@@ -148,17 +160,15 @@ class _LoginPageState extends State<LoginPage> {
                             String username = usernameController.text;
                             String pin = pinController.text;
                             if (await groupLogin(groupKey, username, pin) == true) {
+                              final token = await FlutterSecureStorage().read(key: 'token');
+                              WebSocketService.instance.connect(token!);
+                              WebSocketService.instance.requestSync();
+                              if (!context.mounted) return;
                               context.go('/home');
                             }
                           }
                         } catch (e) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text("Error: ${e.toString()}"),
-                              behavior: SnackBarBehavior.floating,
-                              margin: const EdgeInsets.all(16),
-                            ),
-                          );
+                          ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
                         }
 
                         setState(() {

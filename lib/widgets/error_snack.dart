@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart' as material;
+import 'package:flutter/material.dart';
 
-class SnackBar {
-  final String errorMessage;
-  const SnackBar({required this.errorMessage});
-
-  static void showErrorSnackBar(material.BuildContext context, String errorMessage) {
-    material.ScaffoldMessenger.of(context).showSnackBar(material.SnackBar(content: material.Text(errorMessage)));
+class ErrorSnack {
+  static void showErrorSnackBar(ScaffoldMessengerState scaffoldMessenger, Object error) {
+    final message = error.toString().replaceFirst("Exception: ", "");
+    scaffoldMessenger.showSnackBar(
+      SnackBar(content: Text("Error: $message"), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.all(16)),
+    );
   }
 }

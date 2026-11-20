@@ -1,78 +1,31 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:lasertracker/core/api.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:lasertracker/models/models.dart';
 
-class LogView extends StatefulWidget {
+class LogView extends StatelessWidget {
   const LogView({super.key});
 
   @override
-  State<LogView> createState() => _LogViewState();
-}
-
-class _LogViewState extends State<LogView> {
-  Future<List<dynamic>>? logsFuture;
-  Timer? refreshTimer;
-
-  @override
-  void dispose() {
-    refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    logsFuture = getLogs();
-
-    refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (mounted) {
-        silentRefresh();
-      }
-    });
-  }
-
-  Future<void> silentRefresh() async {
-    setState(() {
-      logsFuture = getLogs();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        silentRefresh();
-        await Future.delayed(const Duration(milliseconds: 500));
+    return ValueListenableBuilder<Box>(
+      valueListenable: Hive.box('logs').listenable(),
+      builder: (context, box, _) {
+        final logs = box.values.map((e) => LogEntry.fromJson(Map<String, dynamic>.from(e as Map))).toList()
+          ..sort((a, b) => b.timestamp!.compareTo(a.timestamp!));
+
+        if (logs.isEmpty) {
+          return const Center(child: Text("No logs yet"));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: logs.length,
+          itemBuilder: (context, index) {
+            final log = logs[index];
+            return Text("[${log.timestamp}] ${log.requestingUser} ${log.action} ${log.actionedUser}");
+          },
+        );
       },
-      child: FutureBuilder(
-        future: logsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Error fetching logs"));
-          }
-          if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            final data = snapshot.data as List<dynamic>;
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: data.length,
-              itemBuilder: (context, index) {
-                DateTime dt = DateTime.fromMillisecondsSinceEpoch((data[index]["timestamp"] * 1000).round()).toLocal();
-                String action = data[index]["action"];
-                String username = data[index]["username"];
-                return Text("[$dt] $username $action");
-              },
-            );
-          }
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
-            ),
-          );
-        },
-      ),
     );
   }
 }

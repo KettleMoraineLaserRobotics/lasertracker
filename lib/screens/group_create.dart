@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lasertracker/core/api.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+
+import 'package:lasertracker/core/websocket_service.dart';
+import 'package:lasertracker/widgets/error_snack.dart';
 
 class GroupCreatePage extends StatefulWidget {
   const GroupCreatePage({super.key});
@@ -51,7 +55,7 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
       });
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -207,16 +211,14 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                                 pinController.text,
                               ) ==
                               true) {
+                            final token = await FlutterSecureStorage().read(key: 'token');
+                            WebSocketService.instance.connect(token!);
+                            WebSocketService.instance.requestSync();
+                            if (!context.mounted) return;
                             context.go('/home');
                           }
                         } catch (e) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text("Error: ${e.toString()}"),
-                              behavior: SnackBarBehavior.floating,
-                              margin: const EdgeInsets.all(16),
-                            ),
-                          );
+                          ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
                         }
 
                         setState(() {

@@ -1,57 +1,266 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:lasertracker/models/models.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+enum WSSSatus { connecting, connected, disconnected }
+
 class WebSocketService {
+  WebSocketService._();
+  static final WebSocketService instance = WebSocketService._();
   WebSocketChannel? channel;
-  final StreamController<Map<String, dynamic>> eventController = StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<WSMessage> eventController = StreamController<WSMessage>.broadcast();
 
-  Stream<Map<String, dynamic>> get eventStream => eventController.stream;
+  final ValueNotifier<WSSSatus> status = ValueNotifier(WSSSatus.disconnected);
 
-  void connect(String jwtToken, int retryCounter) async {
-    final prefs = await SharedPreferences.getInstance();
-    final serverURL = prefs.getString("backendURL");
-    final wsUrl = Uri.parse('$serverURL/ws?token=$jwtToken');
+  Stream<WSMessage> get eventStream => eventController.stream;
 
-    channel = WebSocketChannel.connect(wsUrl);
+  final Map<String, Completer<void>> pendingRequests = {};
+  int requestCounter = 0;
 
-    channel!.stream.listen(
+  static const Map<String, String> errorText = {
+    'invalid_payload': "The server didn't understand that request",
+    'forbidden': "You don't have permission to do that",
+    'not_found': "That member or item doesn't exist anymore",
+    'already_exists': "That already exists",
+    'unknown_type': "The server doesn't support that yet",
+    'internal': "Something went wrong on the server",
+  };
+
+  void connect(String jwtToken) async {
+    channel?.sink.close();
+    final serverURL = Hive.box('meta').get('server_url');
+    final wsUrl = Uri.parse(
+      serverURL,
+    ).replace(scheme: serverURL.startsWith('https') ? 'wss' : 'ws', path: '/ws', queryParameters: {'token': jwtToken});
+
+    final ch = WebSocketChannel.connect(wsUrl);
+    channel = ch;
+    status.value = WSSSatus.connecting;
+
+    try {
+      await ch.ready;
+      status.value = WSSSatus.connected;
+    } catch (_) {
+      status.value = WSSSatus.disconnected;
+      await Future.delayed(const Duration(seconds: 3));
+      connect(jwtToken);
+      return;
+    }
+
+    ch.stream.listen(
       (message) {
-        final decoded = jsonDecode(message as String) as Map<String, dynamic>;
-        eventController.add(decoded);
-      },
-      onError: (retryCounter) { // This is probobly a very sloppy solution :/
-        if (retryCounter < 5) {
-          connect(jwtToken, retryCounter);
+        final WSMessage wsMessage;
+        try {
+          wsMessage = WSMessage.fromJson(jsonDecode(message as String) as Map<String, dynamic>);
+        } catch (_) {
+          return;
         }
+        if (completeRequest(wsMessage)) return;
+        eventController.add(wsMessage);
+        handleWSPayload(wsMessage);
+      },
+
+      onError: (_) => status.value = WSSSatus.disconnected,
+
+      onDone: () {
+        if (channel == ch) {
+          channel = null;
+          status.value = WSSSatus.disconnected;
+        }
+        status.value = WSSSatus.disconnected;
       },
     );
   }
 
   void disconnect() {
     channel?.sink.close();
-    eventController.close();
+  }
+
+  void send(String infoType, {Map<String, dynamic>? payload, String? requestId}) {
+    final ch = channel;
+    if (ch == null) return;
+
+    ch.sink.add(
+      jsonEncode({
+        'group_key': '',
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'info_type': infoType,
+        'payload': payload ?? {},
+        'request_id': ?requestId,
+      }),
+    );
+  }
+
+  void requestSync() => send('SYNC');
+
+  Future<void> sendRequest(String infoType, Map<String, dynamic> payload) {
+    if (channel == null) {
+      return Future.error(Exception("Not connected to the server"));
+    }
+    final requestId = "${DateTime.now().microsecondsSinceEpoch}-${requestCounter++}";
+    final completer = Completer<void>();
+    pendingRequests[requestId] = completer;
+    send(infoType, payload: payload, requestId: requestId);
+    return completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        pendingRequests.remove(requestId);
+        throw Exception("No response, you may be offline");
+      },
+    );
+  }
+
+  bool completeRequest(WSMessage message) {
+    if (message.infoType != 'ACK' && message.infoType != 'ERROR') return false;
+    final completer = pendingRequests.remove(message.requestId);
+    if (completer == null) return true;
+    if (message.infoType == 'ACK') {
+      completer.complete();
+    } else {
+      final code = message.payload?['code'] as String?;
+      completer.completeError(Exception(errorText[code] ?? message.payload?['message'] ?? "Request failed"));
+    }
+    return true;
   }
 
   void handleWSPayload(WSMessage message) {
+    if (message.payload == null) return;
+
     switch (message.infoType) {
-      case "sync": // Batch of all applicable data
+      case 'SYNC':
+        handleSync(message);
         break;
-      case "member": // Info about a member(s)
-        // Handle change payload
+      case 'MEMBER_ADDED':
+      case 'MEMBER_UPDATED':
+      case 'MEMBER_ROLE_CHANGED':
+        handleMember(message);
         break;
-      case "battery": // Info about a battery(s)
-        // Handle query payload
+      case 'MEMBER_REMOVED':
+        handleMemberRemoved(message);
         break;
-      case "group": // Info about the group
-        // Handle query payload
+      case 'BATTERY_ADDED':
+      case 'BATTERY_UPDATED':
+        handleBattery(message);
         break;
-      case "match": // Info about a match(es)
-
-      case "logs":
-
+      case 'BATTERY_REMOVED':
+        handleBatteryRemoved(message);
+        break;
+      case 'GROUP_EVENT_KEY_UPDATED':
+        handleGroup(message);
+        break;
+      case 'MATCHES_UPDATED':
+        handleMatch(message);
+        break;
+      case 'STREAMS_UPDATED':
+        handleStreams(message);
+        break;
+      case 'LOG_ADDED':
+        handleLog(message);
+        break;
     }
   }
 }
+
+List<Map<String, dynamic>> _asMapList(dynamic raw) =>
+    (raw as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+String _logKey(LogEntry log) => log.timestamp!.toUtc().toIso8601String();
+
+Future<void> putMember(Member member) => Hive.box('members').put(member.userName, member.toJson());
+
+Future<void> putUser(User user) => Hive.box('user').put('user', user.toJson());
+
+Future<void> putBattery(Battery battery) => Hive.box('batteries').put(battery.name, battery.toJson());
+
+Future<void> putGroup(Group group) => Hive.box('group').put('group_info', group.toJson());
+
+Future<void> putMatch(Match match) => Hive.box('matches').put(match.matchKey, match.toJson());
+
+Future<void> putStream(EventStream stream) => Hive.box('streams').put(stream.url, stream.toJson());
+
+Future<void> putLog(LogEntry log) => Hive.box('logs').put(_logKey(log), log.toJson());
+
+Future<void> handleSync(WSMessage message) async {
+  final data = message.payload!;
+  final username = await const FlutterSecureStorage().read(key: "username");
+
+  for (final box in ['members', 'batteries', 'logs', 'group', 'matches', 'streams']) {
+    await Hive.box(box).clear();
+  }
+
+  for (final m in _asMapList(data['members'])) {
+    final member = Member.fromJson(m);
+    await putMember(member);
+    if (member.userName == username) {
+      await putUser(User.fromJson(m));
+    }
+  }
+  for (final b in _asMapList(data['batteries'])) {
+    await putBattery(Battery.fromJson(b));
+  }
+  for (final l in _asMapList(data['logs'])) {
+    await putLog(LogEntry.fromJson(l));
+  }
+  if (data['group'] is Map) {
+    await putGroup(Group.fromJson(Map<String, dynamic>.from(data['group'] as Map)));
+  }
+  for (final m in _asMapList(data['matches'])) {
+    await putMatch(Match.fromJson(m));
+  }
+  for (final s in _asMapList(data['streams'])) {
+    await putStream(EventStream.fromJson(s));
+  }
+}
+
+Future<void> handleMember(WSMessage message) async {
+  final member = Member.fromJson(message.payload!);
+  await putMember(member);
+  final username = await const FlutterSecureStorage().read(key: "username");
+  if (member.userName == username) {
+    await putUser(User.fromJson(message.payload!));
+  }
+}
+
+Future<void> handleBattery(WSMessage message) => putBattery(Battery.fromJson(message.payload!));
+
+Future<void> handleMemberRemoved(WSMessage message) =>
+    Hive.box('members').delete(Member.fromJson(message.payload!).userName);
+
+Future<void> handleBatteryRemoved(WSMessage message) =>
+    Hive.box('batteries').delete(Battery.fromJson(message.payload!).name);
+
+Future<void> handleGroup(WSMessage message) => putGroup(Group.fromJson(message.payload!));
+
+Future<void> handleMatch(WSMessage message) async {
+  final eventKey = message.payload!['event_key'];
+  final box = Hive.box('matches');
+
+  final incoming = <String, Map<String, dynamic>>{
+    for (final m in _asMapList(message.payload!['matches']).map(Match.fromJson)) m.matchKey!: m.toJson(),
+  };
+  final stale = box.keys.where((k) {
+    final existing = Match.fromJson(Map<String, dynamic>.from(box.get(k) as Map));
+    return existing.eventKey == eventKey && !incoming.containsKey(k);
+  }).toList();
+  final changed = Map.fromEntries(incoming.entries.where((e) => !_sameJson(box.get(e.key), e.value)));
+
+  if (stale.isNotEmpty) await box.deleteAll(stale);
+  if (changed.isNotEmpty) await box.putAll(changed);
+}
+
+bool _sameJson(dynamic stored, Map<String, dynamic> fresh) =>
+    stored is Map && jsonEncode(Map<String, dynamic>.from(stored)) == jsonEncode(fresh);
+
+Future<void> handleStreams(WSMessage message) async {
+  final box = Hive.box('streams');
+  await box.clear();
+  for (final s in _asMapList(message.payload!['streams'])) {
+    await putStream(EventStream.fromJson(s));
+  }
+}
+
+Future<void> handleLog(WSMessage message) => putLog(LogEntry.fromJson(message.payload!));

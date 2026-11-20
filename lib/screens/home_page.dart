@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lasertracker/core/layout.dart';
-import 'package:lasertracker/screens/settings_page.dart';
+import 'package:lasertracker/core/websocket_service.dart';
+import 'package:lasertracker/widgets/batteries_view.dart';
 import 'package:lasertracker/widgets/log_view.dart';
 import 'package:lasertracker/widgets/members_view.dart';
+import 'package:lasertracker/widgets/offline_banner.dart';
+import 'package:lasertracker/widgets/settings_view.dart';
 import 'package:lasertracker/widgets/team_view.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,12 +18,45 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int pageIndex = 0;
 
-  final List<Widget> pages = const [TeamView(), MembersView(), LogView(), SettingsPage()];
+  final List<Widget> pages = const [TeamView(), MembersView(), BatteriesView(), LogView(), SettingsView()];
+  late ScaffoldMessengerState scaffoldMessenger;
+  bool bannerShowing = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    scaffoldMessenger = ScaffoldMessenger.of(context);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WebSocketService.instance.status.addListener(onStatusChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => onStatusChanged());
+  }
+
+  @override
+  void dispose() {
+    WebSocketService.instance.status.removeListener(onStatusChanged);
+    if (bannerShowing) OfflineBanner.hideOfflineBanner(scaffoldMessenger);
+    super.dispose();
+  }
+
+  void onStatusChanged() {
+    if (!mounted) return;
+    final status = WebSocketService.instance.status.value;
+    if (status == WSSSatus.disconnected && !bannerShowing) {
+      OfflineBanner.showOfflineBanner(scaffoldMessenger);
+      bannerShowing = true;
+    } else if (status == WSSSatus.connected && bannerShowing) {
+      OfflineBanner.hideOfflineBanner(scaffoldMessenger);
+      bannerShowing = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final wide = isWideScreen(context);
-
     return Scaffold(
       body: SafeArea(
         child: Row(
@@ -46,6 +82,11 @@ class _HomePageState extends State<HomePage> {
                     icon: Icon(Icons.radar),
                     selectedIcon: Icon(Icons.radar, color: Color(0xff00ff92)),
                     label: Text('Members'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.battery_0_bar),
+                    selectedIcon: Icon(Icons.battery_0_bar, color: Color(0xff00ff92)),
+                    label: Text('Batteries'),
                   ),
                   NavigationRailDestination(
                     icon: Icon(Icons.access_time),
@@ -81,6 +122,10 @@ class _HomePageState extends State<HomePage> {
                 NavigationDestination(
                   icon: Icon(Icons.radar, color: Color(0xff00ff92)),
                   label: 'Members',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.battery_0_bar, color: Color(0xff00ff92)),
+                  label: 'Batteries',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.access_time, color: Color(0xff00ff92)),

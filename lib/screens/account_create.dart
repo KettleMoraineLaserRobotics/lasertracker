@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lasertracker/core/api.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lasertracker/core/websocket_service.dart';
+import 'package:lasertracker/widgets/error_snack.dart';
 
 class AccountCreatePage extends StatefulWidget {
   const AccountCreatePage({super.key});
@@ -32,7 +35,11 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Center(child: SingleChildScrollView(child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 750), child: Column(
+          child: Center(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 750),
+                child: Column(
                   children: [
                     SizedBox(height: 16),
                     TextField(
@@ -87,16 +94,14 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                                 groupKeyController.text,
                               ) ==
                               true) {
+                            final token = await FlutterSecureStorage().read(key: 'token');
+                            WebSocketService.instance.connect(token!);
+                            WebSocketService.instance.requestSync();
+                            if (!context.mounted) return;
                             context.go('/home');
                           }
                         } catch (e) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text("Error: ${e.toString()}"),
-                              behavior: SnackBarBehavior.floating,
-                              margin: const EdgeInsets.all(16),
-                            ),
-                          );
+                          ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
                         }
 
                         setState(() {
@@ -108,7 +113,10 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                           : Text("Create Account"),
                     ),
                   ],
-                ),),))
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
