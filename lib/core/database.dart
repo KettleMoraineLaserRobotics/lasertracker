@@ -11,17 +11,19 @@ Future<void> initDB() async {
     await Hive.openBox(name);
   }
   final serverURL = Hive.box('meta').get('server_url');
+  Hive.box(
+    'meta',
+  ).put('client_version', "Prerelease"); // CHANGE ME EACH UPDATE PLEASE <3!! (yy.mm.dd versioning please too)
   if (serverURL == null || serverURL == "") {
     Hive.box('meta').put('server_url', 'https://api.lasertracker.laserrobotics.org');
   }
 }
 
 Future<void> clearDB() async {
-  final url = Hive.box('meta').get('server_url');
   for (final name in boxNames) {
+    if (name == 'meta') continue;
     await Hive.box(name).clear();
   }
-  Hive.box('meta').put('server_url', url);
 }
 
 Map<String, dynamic> _asJson(dynamic raw) => Map<String, dynamic>.from(raw as Map);

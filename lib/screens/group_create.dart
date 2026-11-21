@@ -69,100 +69,126 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                 constraints: BoxConstraints(maxWidth: 750),
                 child: Column(
                   children: [
-                    SizedBox(height: 16),
                     TextField(
                       controller: teamNumController,
                       decoration: InputDecoration(labelText: "Team Number", border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                     ),
-                    SizedBox(height: 16),
-                    SizedBox(
-                      height: 32,
-                      child: Row(
-                        children: [
-                          Spacer(),
-                          FutureBuilder<Image>(
-                            future: getTeamAvatar(teamNum),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasError) {
-                                return Center(child: Text("Error fetching team avatar"));
-                              }
-                              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-                                return snapshot.data!;
-                              }
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
+                    teamNumController.text.isEmpty
+                        ? SizedBox.shrink()
+                        : Column(
+                            children: [
+                              SizedBox(height: 16),
+                              SizedBox(
+                                height: 32,
+                                child: Row(
+                                  children: [
+                                    Spacer(),
+                                    FutureBuilder<Image>(
+                                      future: getTeamAvatar(teamNum),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasError) {
+                                          return Center(
+                                            child: Text(
+                                              "Error fetching team avatar",
+                                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: Theme.of(context).colorScheme.error,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                                          return snapshot.data!;
+                                        }
+                                        return const Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16),
+                                            child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    SizedBox(width: 8),
+                                    FutureBuilder<String>(
+                                      future: getTeamName(teamNum),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasError) {
+                                          return Center(
+                                            child: Text(
+                                              "Error fetching team name",
+                                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: Theme.of(context).colorScheme.error,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                                          teamName = snapshot.data!;
+                                          return Text(snapshot.data!, style: Theme.of(context).textTheme.titleMedium);
+                                        }
+                                        return const Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16),
+                                            child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    Spacer(),
+                                  ],
                                 ),
-                              );
-                            },
+                              ),
+                              SizedBox(height: 16),
+                              FutureBuilder<List<dynamic>>(
+                                future: getEvents(teamNum),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                      child: Text(
+                                        "Error fetching events",
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error),
+                                      ),
+                                    );
+                                  }
+                                  if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                                    final entries =
+                                        snapshot.data?.map<DropdownMenuEntry<Object?>>((item) {
+                                          if (item is Map && item.length == 1) {
+                                            final displayName = item.keys.first.toString();
+                                            final value = item.values.first;
+                                            return DropdownMenuEntry<Object?>(value: value, label: displayName);
+                                          }
+                                          return DropdownMenuEntry<Object?>(value: item, label: item.toString());
+                                        }).toList() ??
+                                        [];
+                                    return DropdownMenu<Object?>(
+                                      controller: eventSelectorController,
+                                      enableFilter: true,
+                                      requestFocusOnTap: true,
+                                      inputDecorationTheme: InputDecorationTheme(border: OutlineInputBorder()),
+                                      label: Text("Select Event"),
+                                      onSelected: (value) {
+                                        eventCode = value.toString();
+                                      },
+                                      dropdownMenuEntries: entries,
+                                    );
+                                  }
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 8),
-                          FutureBuilder<String>(
-                            future: getTeamName(teamNum),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasError) {
-                                return Center(child: Text("Error fetching team name"));
-                              }
-                              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-                                teamName = snapshot.data!;
-                                return Text(snapshot.data!);
-                              }
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
-                                ),
-                              );
-                            },
-                          ),
-                          Spacer(),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    FutureBuilder<List<dynamic>>(
-                      future: getEvents(teamNum),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          return Center(child: Text("Error fetching events"));
-                        }
-                        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-                          final entries =
-                              snapshot.data?.map<DropdownMenuEntry<Object?>>((item) {
-                                if (item is Map && item.length == 1) {
-                                  final displayName = item.keys.first.toString();
-                                  final value = item.values.first;
-                                  return DropdownMenuEntry<Object?>(value: value, label: displayName);
-                                }
-                                return DropdownMenuEntry<Object?>(value: item, label: item.toString());
-                              }).toList() ??
-                              [];
-                          return DropdownMenu<Object?>(
-                            controller: eventSelectorController,
-                            enableFilter: true,
-                            requestFocusOnTap: true,
-                            inputDecorationTheme: InputDecorationTheme(border: OutlineInputBorder()),
-                            label: Text("Select Event"),
-                            onSelected: (value) {
-                              eventCode = value.toString();
-                            },
-                            dropdownMenuEntries: entries,
-                          );
-                        }
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
-                          ),
-                        );
-                      },
-                    ),
                     SizedBox(height: 32),
                     Text(
                       "The following info will be used to create the 'Coach Account' for your group. This account will be used to log in to the group and manage your group settings.",
-                      style: TextStyle(fontSize: 14),
+                      style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 16),
@@ -172,7 +198,9 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                     ),
                     Text(
                       "This is the name that will be displayed to other members in the group.",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     TextField(
@@ -181,7 +209,9 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                     ),
                     Text(
                       "This is the name that will be used to log in to the group.",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     TextField(
@@ -190,7 +220,9 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                     ),
                     Text(
                       "This is the password that will be used to log in to the group.",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     ElevatedButton(
@@ -213,7 +245,6 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                               true) {
                             final token = await FlutterSecureStorage().read(key: 'token');
                             WebSocketService.instance.connect(token!);
-                            WebSocketService.instance.requestSync();
                             if (!context.mounted) return;
                             context.go('/home');
                           }

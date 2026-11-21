@@ -25,6 +25,21 @@ String errorMessage(String action, http.Response response) {
   return body.isEmpty ? "$action: ${response.statusCode}" : "$action: $body (${response.statusCode})";
 }
 
+Future<String> getServerInfo() async {
+  final serverURL = Hive.box('meta').get('server_url');
+
+  final response = await http.get(Uri.parse("$serverURL/info"));
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    Hive.box('meta').put('instance_name', data['instance_name']);
+    Hive.box('meta').put('server_version', data['version']);
+    return data['required_version'] ?? '';
+  } else {
+    throw Exception(errorMessage("Failed to fetch server info", response));
+  }
+}
+
 Future<bool> groupLogin(String groupKey, String username, String pin) async {
   final serverURL = Hive.box('meta').get('server_url');
 

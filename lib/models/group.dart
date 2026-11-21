@@ -27,10 +27,11 @@ class Group {
   static final Map<String, Uint8List> avatarCache = {};
 
   Image teamAvatar() {
-    if (teamAvatarB64 == "none") {
+    final b64 = teamAvatarB64;
+    if (b64 == null || b64.isEmpty || b64 == "none") {
       return Image.asset("assets/images/first_icon.png", height: 75, alignment: Alignment.center);
     } else {
-      final bytes = avatarCache.putIfAbsent(teamAvatarB64!, () => base64Decode(teamAvatarB64!));
+      final bytes = avatarCache.putIfAbsent(b64, () => base64Decode(b64));
       return Image.memory(bytes, gaplessPlayback: true);
     }
   }

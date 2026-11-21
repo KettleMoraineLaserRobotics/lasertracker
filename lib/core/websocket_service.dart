@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:lasertracker/core/api.dart';
+import 'package:lasertracker/core/database.dart';
+import 'package:lasertracker/main.dart';
 import 'package:lasertracker/models/models.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-enum WSSSatus { connecting, connected, disconnected }
+enum WSSSatus { connecting, connected, disconnected, outdated }
 
 class WebSocketService {
   WebSocketService._();
@@ -15,6 +18,7 @@ class WebSocketService {
   final StreamController<WSMessage> eventController = StreamController<WSMessage>.broadcast();
 
   final ValueNotifier<WSSSatus> status = ValueNotifier(WSSSatus.disconnected);
+  final ValueNotifier<bool> wantsConnection = ValueNotifier(false);
 
   Stream<WSMessage> get eventStream => eventController.stream;
 
@@ -30,8 +34,47 @@ class WebSocketService {
     'internal': "Something went wrong on the server",
   };
 
+  int connectGen = 0;
+
+  int failedUpgrades = 0;
+  static const int maxFailedUpgrades = 3;
+
+  static const int groupDeletedCloseCode = 4001;
+
+  bool loggingOut = false;
+
+  Future<void> handlerQueue = Future.value();
+
+  Future<void> enqueue(Future<void> Function() job) {
+    final next = handlerQueue.then((_) => job());
+    handlerQueue = next.catchError((Object e) => debugPrint('ws handler failed: $e'));
+    return next;
+  }
+
   void connect(String jwtToken) async {
-    channel?.sink.close();
+    final gen = ++connectGen;
+    wantsConnection.value = true;
+    loggingOut = false;
+    final old = channel;
+    channel = null;
+    old?.sink.close();
+    failPending("Lost connection to the server");
+    status.value = WSSSatus.connecting;
+
+    try {
+      final requiredVersion = await getServerInfo();
+      if (gen != connectGen) return;
+      if (requiredVersion.isNotEmpty && requiredVersion != Hive.box('meta').get('client_version')) {
+        status.value = WSSSatus.outdated;
+        return;
+      }
+    } catch (_) {
+      if (gen != connectGen) return;
+      status.value = WSSSatus.disconnected;
+      retryLater(gen);
+      return;
+    }
+
     final serverURL = Hive.box('meta').get('server_url');
     final wsUrl = Uri.parse(
       serverURL,
@@ -39,20 +82,31 @@ class WebSocketService {
 
     final ch = WebSocketChannel.connect(wsUrl);
     channel = ch;
-    status.value = WSSSatus.connecting;
 
     try {
       await ch.ready;
-      status.value = WSSSatus.connected;
     } catch (_) {
+      if (gen != connectGen) return;
+      channel = null;
       status.value = WSSSatus.disconnected;
-      await Future.delayed(const Duration(seconds: 3));
-      connect(jwtToken);
+      if (++failedUpgrades >= maxFailedUpgrades) {
+        forceLogout("Your login isn't valid anymore, please log in again.");
+        return;
+      }
+      retryLater(gen);
       return;
     }
+    if (gen != connectGen) {
+      ch.sink.close();
+      return;
+    }
+    failedUpgrades = 0;
+    status.value = WSSSatus.connected;
+    requestSync();
 
     ch.stream.listen(
       (message) {
+        if (channel != ch) return;
         final WSMessage wsMessage;
         try {
           wsMessage = WSMessage.fromJson(jsonDecode(message as String) as Map<String, dynamic>);
@@ -64,20 +118,79 @@ class WebSocketService {
         handleWSPayload(wsMessage);
       },
 
-      onError: (_) => status.value = WSSSatus.disconnected,
+      onError: (_) {
+        if (channel == ch) status.value = WSSSatus.disconnected;
+      },
 
       onDone: () {
-        if (channel == ch) {
-          channel = null;
-          status.value = WSSSatus.disconnected;
-        }
+        if (channel != ch) return;
+        channel = null;
         status.value = WSSSatus.disconnected;
+        failPending("Lost connection to the server");
+        if (ch.closeCode == groupDeletedCloseCode) {
+          forceLogout("The group you were in was deleted.", forgetGroup: true);
+          return;
+        }
+        retryLater(gen);
       },
     );
   }
 
+  Future<void> retryLater(int gen) async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (gen != connectGen || !wantsConnection.value) return;
+    final token = await const FlutterSecureStorage().read(key: 'token');
+    if (gen != connectGen || token == null || token.isEmpty) return;
+    connect(token);
+  }
+
   void disconnect() {
-    channel?.sink.close();
+    connectGen++;
+    wantsConnection.value = false;
+    final old = channel;
+    channel = null;
+    old?.sink.close();
+    failPending("Disconnected");
+  }
+
+  Future<void> logOut({bool forgetGroup = false}) async {
+    disconnect();
+    failedUpgrades = 0;
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: 'token');
+    await storage.delete(key: 'username');
+    await storage.delete(key: 'pin');
+
+    if (forgetGroup) await storage.delete(key: 'group_key');
+    await enqueue(clearDB);
+  }
+
+  Future<void> forceLogout(String reason, {bool forgetGroup = false}) async {
+    if (loggingOut) return;
+    loggingOut = true;
+    await logOut(forgetGroup: forgetGroup);
+    router.go('/login');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = router.routerDelegate.navigatorKey.currentContext;
+      if (ctx == null) return;
+      showDialog(
+        context: ctx,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('Logged out', style: Theme.of(dialogContext).textTheme.displaySmall),
+          content: Text(reason),
+          actions: [ElevatedButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Ok'))],
+        ),
+      );
+    });
+  }
+
+  void failPending(String reason) {
+    if (pendingRequests.isEmpty) return;
+    final pending = pendingRequests.values.toList();
+    pendingRequests.clear();
+    for (final completer in pending) {
+      if (!completer.isCompleted) completer.completeError(Exception(reason));
+    }
   }
 
   void send(String infoType, {Map<String, dynamic>? payload, String? requestId}) {
@@ -127,40 +240,38 @@ class WebSocketService {
     return true;
   }
 
-  void handleWSPayload(WSMessage message) {
+  void handleWSPayload(WSMessage message) => enqueue(() => dispatch(message));
+
+  Future<void> dispatch(WSMessage message) async {
+    // not awaited: logOut queues clearDB behind this job, awaiting it here would wait on itself forever
+    if (message.infoType == 'GROUP_REMOVED') {
+      unawaited(forceLogout("The group you were in was deleted.", forgetGroup: true));
+      return;
+    }
     if (message.payload == null) return;
 
     switch (message.infoType) {
       case 'SYNC':
-        handleSync(message);
-        break;
+        return handleSync(message);
       case 'MEMBER_ADDED':
       case 'MEMBER_UPDATED':
       case 'MEMBER_ROLE_CHANGED':
-        handleMember(message);
-        break;
+        return handleMember(message);
       case 'MEMBER_REMOVED':
-        handleMemberRemoved(message);
-        break;
+        return handleMemberRemoved(message);
       case 'BATTERY_ADDED':
       case 'BATTERY_UPDATED':
-        handleBattery(message);
-        break;
+        return handleBattery(message);
       case 'BATTERY_REMOVED':
-        handleBatteryRemoved(message);
-        break;
+        return handleBatteryRemoved(message);
       case 'GROUP_EVENT_KEY_UPDATED':
-        handleGroup(message);
-        break;
+        return handleGroup(message);
       case 'MATCHES_UPDATED':
-        handleMatch(message);
-        break;
+        return handleMatch(message);
       case 'STREAMS_UPDATED':
-        handleStreams(message);
-        break;
+        return handleStreams(message);
       case 'LOG_ADDED':
-        handleLog(message);
-        break;
+        return handleLog(message);
     }
   }
 }

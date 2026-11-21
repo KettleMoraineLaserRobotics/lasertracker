@@ -86,7 +86,7 @@ class _MembersViewState extends State<MembersView> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: const Text("Edit Member"),
+              title: Text("Edit Member", style: Theme.of(context).textTheme.displaySmall),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -137,7 +137,13 @@ class _MembersViewState extends State<MembersView> {
                         await member.changePin(newPinController.text);
                         newPinController.text = "";
                       }
-                      scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Member updated successfully!")));
+                      scaffoldMessenger.showSnackBar(
+                        const SnackBar(
+                          content: Text("Member updated successfully!"),
+                          behavior: SnackBarBehavior.floating,
+                          margin: EdgeInsets.all(16),
+                        ),
+                      );
                       navigator.pop(true);
                     } catch (e) {
                       ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
@@ -197,7 +203,7 @@ class _MembersViewState extends State<MembersView> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text(customTitle),
+              title: Text(customTitle, style: Theme.of(context).textTheme.displaySmall),
               content: TextField(
                 controller: customController,
                 decoration: InputDecoration(labelText: customLabel, border: const OutlineInputBorder()),
@@ -265,6 +271,7 @@ class _MembersViewState extends State<MembersView> {
           DropdownMenu<String>(
             expandedInsets: EdgeInsets.zero,
             controller: roleController,
+            enabled: user.isAdmin!,
             label: const Text("Role"),
             inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
             initialSelection: user.role,
@@ -316,8 +323,11 @@ class _MembersViewState extends State<MembersView> {
   Widget membersSection(BuildContext context, ScaffoldMessengerState scaffoldMessenger, {required bool wide}) {
     final groups = membersByLocation;
     if (groups.isEmpty) {
-      return const Center(
-        child: Padding(padding: EdgeInsets.all(16), child: Text("No Members")),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text("No Members", style: Theme.of(context).textTheme.bodyLarge),
+        ),
       );
     }
 
@@ -398,7 +408,7 @@ class _MembersViewState extends State<MembersView> {
             child: Tooltip(
               message: "Edit $name",
               child: Material(
-                color: Color.fromARGB(50, 0, 255, 145),
+                color: Theme.of(context).colorScheme.primaryContainer,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(

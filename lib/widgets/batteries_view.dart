@@ -53,6 +53,7 @@ class _BatteriesViewState extends State<BatteriesView> {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
+        final TextEditingController nameController = TextEditingController();
         final TextEditingController statusController = TextEditingController(text: battery.status ?? "");
         final TextEditingController notesController = TextEditingController(text: battery.notes ?? "");
         int matchesUsed = battery.matchesUsed ?? 0;
@@ -60,11 +61,53 @@ class _BatteriesViewState extends State<BatteriesView> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text("${isNew ? "Add" : "Edit"} ${battery.name ?? "Battery"}"),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "${isNew ? "Add" : "Edit"} ${battery.name ?? "Battery"}",
+                      style: Theme.of(context).textTheme.displaySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  isNew
+                      ? SizedBox.shrink()
+                      : ElevatedButton(
+                          onPressed: () async {
+                            final navigator = Navigator.of(context);
+                            try {
+                              await battery.removeBattery();
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text("Battery removed successfully!"),
+                                  behavior: SnackBarBehavior.floating,
+                                  margin: EdgeInsets.all(16),
+                                ),
+                              );
+                              navigator.pop(true);
+                            } catch (e) {
+                              ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                            foregroundColor: Theme.of(context).colorScheme.onError,
+                          ),
+                          child: const Text('Remove'),
+                        ),
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    isNew
+                        ? TextField(
+                            controller: nameController,
+                            decoration: const InputDecoration(labelText: "Name", border: OutlineInputBorder()),
+                          )
+                        : SizedBox.shrink(),
+                    SizedBox(height: 16),
                     DropdownMenu<String>(
                       expandedInsets: EdgeInsets.zero,
                       controller: statusController,
@@ -77,7 +120,7 @@ class _BatteriesViewState extends State<BatteriesView> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    const Text("Matches Used"),
+                    Text("Matches Used", style: Theme.of(context).textTheme.titleSmall),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -85,7 +128,7 @@ class _BatteriesViewState extends State<BatteriesView> {
                           onPressed: matchesUsed > 0 ? () => setState(() => matchesUsed--) : null,
                           icon: const Icon(Icons.remove),
                         ),
-                        Text(matchesUsed.toString()),
+                        Text(matchesUsed.toString(), style: Theme.of(context).textTheme.titleMedium),
                         IconButton(onPressed: () => setState(() => matchesUsed++), icon: const Icon(Icons.add)),
                       ],
                     ),
@@ -100,44 +143,50 @@ class _BatteriesViewState extends State<BatteriesView> {
                 ),
               ),
               actions: <Widget>[
-                if (!isNew)
-                  ElevatedButton(
-                    onPressed: () async {
-                      final navigator = Navigator.of(context);
-                      try {
-                        await battery.removeBattery();
-                        scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Battery removed successfully!")));
-                        navigator.pop(true);
-                      } catch (e) {
-                        ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                    child: const Text('Remove'),
-                  ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final navigator = Navigator.of(context);
-                    try {
-                      battery.status = statusController.text;
-                      battery.notes = notesController.text;
-                      battery.matchesUsed = matchesUsed;
-                      if (isNew) {
-                        await battery.addBattery(battery);
-                        scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Battery added successfully!")));
-                      } else {
-                        await battery.updateBattery(battery);
-                        scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Battery updated successfully!")));
-                      }
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        try {
+                          if (isNew) {
+                            battery.name = nameController.text;
+                          }
+                          battery.status = statusController.text;
+                          battery.notes = notesController.text;
+                          battery.matchesUsed = matchesUsed;
+                          if (isNew) {
+                            await battery.addBattery(battery);
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(
+                                content: Text("Battery added successfully!"),
+                                behavior: SnackBarBehavior.floating,
+                                margin: EdgeInsets.all(16),
+                              ),
+                            );
+                          } else {
+                            await battery.updateBattery(battery);
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(
+                                content: Text("Battery updated successfully!"),
+                                behavior: SnackBarBehavior.floating,
+                                margin: EdgeInsets.all(16),
+                              ),
+                            );
+                          }
 
-                      navigator.pop(true);
-                    } catch (e) {
-                      ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
-                    }
-                  },
-                  child: const Text('Save'),
+                          navigator.pop(true);
+                        } catch (e) {
+                          ErrorSnack.showErrorSnackBar(scaffoldMessenger, e);
+                        }
+                      },
+                      child: const Text('Save'),
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                  ],
                 ),
-                ElevatedButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
               ],
             );
           },
@@ -192,8 +241,11 @@ class _BatteriesViewState extends State<BatteriesView> {
   Widget batteriesSection(BuildContext context, ScaffoldMessengerState scaffoldMessenger, {required bool wide}) {
     final groups = batteriesByStatus;
     if (groups.isEmpty) {
-      return const Center(
-        child: Padding(padding: EdgeInsets.all(16), child: Text("No Batteries")),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text("No Batteries", style: Theme.of(context).textTheme.bodyLarge),
+        ),
       );
     }
 
@@ -267,9 +319,9 @@ class _BatteriesViewState extends State<BatteriesView> {
             child: Tooltip(
               message: "Edit $name",
               child: Material(
-                color: const Color.fromARGB(50, 0, 255, 145),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 clipBehavior: Clip.antiAlias,
+                color: Theme.of(context).colorScheme.primaryContainer,
                 child: InkWell(
                   mouseCursor: SystemMouseCursors.click,
                   onTap: () => showEditDialog(context, scaffoldMessenger, battery, false),

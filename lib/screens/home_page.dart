@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lasertracker/core/layout.dart';
-import 'package:lasertracker/core/websocket_service.dart';
 import 'package:lasertracker/widgets/batteries_view.dart';
 import 'package:lasertracker/widgets/log_view.dart';
 import 'package:lasertracker/widgets/members_view.dart';
-import 'package:lasertracker/widgets/offline_banner.dart';
 import 'package:lasertracker/widgets/settings_view.dart';
 import 'package:lasertracker/widgets/team_view.dart';
 
@@ -19,40 +17,6 @@ class _HomePageState extends State<HomePage> {
   int pageIndex = 0;
 
   final List<Widget> pages = const [TeamView(), MembersView(), BatteriesView(), LogView(), SettingsView()];
-  late ScaffoldMessengerState scaffoldMessenger;
-  bool bannerShowing = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    scaffoldMessenger = ScaffoldMessenger.of(context);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WebSocketService.instance.status.addListener(onStatusChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => onStatusChanged());
-  }
-
-  @override
-  void dispose() {
-    WebSocketService.instance.status.removeListener(onStatusChanged);
-    if (bannerShowing) OfflineBanner.hideOfflineBanner(scaffoldMessenger);
-    super.dispose();
-  }
-
-  void onStatusChanged() {
-    if (!mounted) return;
-    final status = WebSocketService.instance.status.value;
-    if (status == WSSSatus.disconnected && !bannerShowing) {
-      OfflineBanner.showOfflineBanner(scaffoldMessenger);
-      bannerShowing = true;
-    } else if (status == WSSSatus.connected && bannerShowing) {
-      OfflineBanner.hideOfflineBanner(scaffoldMessenger);
-      bannerShowing = false;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,35 +33,18 @@ class _HomePageState extends State<HomePage> {
                     pageIndex = index;
                   });
                 },
-                leading: Image.asset("assets/images/tracker_icon.png", width: 64),
-                labelType: NavigationRailLabelType.all,
-                indicatorColor: const Color.fromARGB(48, 116, 249, 156),
+                leading: Image.asset(
+                  "assets/images/tracker_icon.png",
+                  width: 64,
+                  color: Theme.of(context).colorScheme.primary,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
                 destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home),
-                    selectedIcon: Icon(Icons.home, color: Color(0xff00ff92)),
-                    label: Text('Team'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.radar),
-                    selectedIcon: Icon(Icons.radar, color: Color(0xff00ff92)),
-                    label: Text('Members'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.battery_0_bar),
-                    selectedIcon: Icon(Icons.battery_0_bar, color: Color(0xff00ff92)),
-                    label: Text('Batteries'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.access_time),
-                    selectedIcon: Icon(Icons.access_time, color: Color(0xff00ff92)),
-                    label: Text('Log'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.settings),
-                    selectedIcon: Icon(Icons.settings, color: Color(0xff00ff92)),
-                    label: Text('Settings'),
-                  ),
+                  NavigationRailDestination(icon: Icon(Icons.home), label: Text('Team')),
+                  NavigationRailDestination(icon: Icon(Icons.radar), label: Text('Members')),
+                  NavigationRailDestination(icon: Icon(Icons.battery_0_bar), label: Text('Batteries')),
+                  NavigationRailDestination(icon: Icon(Icons.access_time), label: Text('Log')),
+                  NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
                 ],
               ),
             Expanded(key: const ValueKey("page"), child: pages[pageIndex]),
@@ -113,28 +60,12 @@ class _HomePageState extends State<HomePage> {
                   pageIndex = index;
                 });
               },
-              indicatorColor: const Color.fromARGB(50, 0, 255, 145),
               destinations: const <Widget>[
-                NavigationDestination(
-                  icon: Icon(Icons.home, color: Color(0xff00ff92)),
-                  label: 'Team',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.radar, color: Color(0xff00ff92)),
-                  label: 'Members',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.battery_0_bar, color: Color(0xff00ff92)),
-                  label: 'Batteries',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.access_time, color: Color(0xff00ff92)),
-                  label: 'Log',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings, color: Color(0xff00ff92)),
-                  label: 'Settings',
-                ),
+                NavigationDestination(icon: Icon(Icons.home), label: 'Team'),
+                NavigationDestination(icon: Icon(Icons.radar), label: 'Members'),
+                NavigationDestination(icon: Icon(Icons.battery_0_bar), label: 'Batteries'),
+                NavigationDestination(icon: Icon(Icons.access_time), label: 'Log'),
+                NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
               ],
             ),
     );

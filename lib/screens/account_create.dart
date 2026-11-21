@@ -48,7 +48,9 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                     ),
                     Text(
                       "This is the group key given to you by your mentor/coach",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     TextField(
@@ -57,7 +59,9 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                     ),
                     Text(
                       "This is the name that will be displyed to other members in the group",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     TextField(
@@ -66,7 +70,9 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                     ),
                     Text(
                       "This is the name you will use to log in to the group",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     TextField(
@@ -75,7 +81,9 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                     ),
                     Text(
                       "This is the password you will use to log in to the group",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: 16),
                     ElevatedButton(
@@ -91,12 +99,11 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
                                 usernameController.text,
                                 displayNameController.text,
                                 pinController.text,
-                                groupKeyController.text,
+                                groupKeyController.text.toUpperCase(),
                               ) ==
                               true) {
                             final token = await FlutterSecureStorage().read(key: 'token');
                             WebSocketService.instance.connect(token!);
-                            WebSocketService.instance.requestSync();
                             if (!context.mounted) return;
                             context.go('/home');
                           }

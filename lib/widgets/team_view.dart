@@ -1,9 +1,12 @@
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lasertracker/models/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:lasertracker/core/database.dart';
 import 'package:lasertracker/core/layout.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TeamView extends StatefulWidget {
   const TeamView({super.key});
@@ -122,30 +125,85 @@ class _TeamViewState extends State<TeamView> {
         SizedBox(height: 40, child: group.teamAvatar()),
         const SizedBox(width: 16),
         if (wide)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("${group.groupName} | Team ${group.teamNum}", style: titleLarge),
-              Text("Group Key: ${group.groupkey ?? ''}"),
-              if (useFakeData)
-                const Text("Testing mode is on. Fake data will be used.", style: TextStyle(color: Colors.red)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${group.groupName} | Team ${group.teamNum}",
+                  style: titleLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Group Key: ", style: Theme.of(context).textTheme.titleSmall),
+                        Text(group.groupkey ?? '', style: GoogleFonts.notoSansMono()),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: group.groupkey!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Copied group key to clipboard!"),
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.all(16),
+                      ),
+                    );
+                  },
+                ),
+                if (useFakeData)
+                  Text(
+                    "Testing mode is on. Fake data will be used.",
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error),
+                  ),
+              ],
+            ),
           )
         else ...[
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(group.groupName!, style: titleLarge),
-              Text("Team ${group.teamNum}"),
-              if (useFakeData) const Text("Testing mode is on.", style: TextStyle(color: Colors.red)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("${group.groupName}", style: titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text("Team ${group.teamNum}", style: Theme.of(context).textTheme.titleMedium),
+                if (useFakeData)
+                  Text(
+                    "Testing mode is on.",
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error),
+                  ),
+              ],
+            ),
           ),
-          const Spacer(),
-          Column(
-            children: [
-              Text("Group Key", style: titleLarge),
-              Text(group.groupkey ?? ""),
-            ],
+          const SizedBox(width: 16),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  Text("Group Key", style: titleLarge),
+                  Text(group.groupkey ?? "", style: GoogleFonts.notoSansMono()),
+                ],
+              ),
+            ),
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: group.groupkey!));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Copied group key to clipboard!"),
+                  behavior: SnackBarBehavior.floating,
+                  margin: EdgeInsets.all(16),
+                ),
+              );
+            },
           ),
         ],
       ],
@@ -155,7 +213,7 @@ class _TeamViewState extends State<TeamView> {
   Widget streamPlayer() {
     final streams = this.streams;
     if (streams.isEmpty) {
-      return const Center(child: Text("No streams found for this event."));
+      return Center(child: Text("No streams found for this event.", style: Theme.of(context).textTheme.bodyLarge));
     }
 
     final current = streams.firstWhere((stream) => stream.url == selectedStream, orElse: () => streams.first);
@@ -187,7 +245,7 @@ class _TeamViewState extends State<TeamView> {
                   key: ValueKey(embedUrl),
                   """<iframe width="100%" height="100%" src="$embedUrl" title="${current.name}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>""",
                 )
-              : const Center(child: Text("This stream can't be embedded.")),
+              : Center(child: Text("This stream can't be embedded.", style: Theme.of(context).textTheme.bodyLarge)),
         ),
       ],
     );
@@ -201,8 +259,11 @@ class _TeamViewState extends State<TeamView> {
 
   Widget nextMatchSection(BuildContext context, List<Match> matches) {
     if (matches.isEmpty) {
-      return const Center(
-        child: Padding(padding: EdgeInsets.all(16), child: Text("No Upcoming Matches")),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text("No Upcoming Matches", style: Theme.of(context).textTheme.bodyLarge),
+        ),
       );
     }
 
@@ -258,7 +319,7 @@ class _TeamViewState extends State<TeamView> {
         const Divider(),
         const SizedBox(height: 4),
         driveTeam.isEmpty
-            ? const Text("No drive team members")
+            ? Text("No drive team members", style: Theme.of(context).textTheme.bodyLarge)
             : SizedBox(
                 height: 80,
                 child: LayoutBuilder(
@@ -280,13 +341,13 @@ class _TeamViewState extends State<TeamView> {
                                     Text(
                                       member.displayName ?? member.userName ?? "",
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 22),
+                                      style: Theme.of(context).textTheme.titleLarge,
                                     ),
                                     Text(
                                       (member.job ?? "").replaceAll("Drive Team - ", ""),
                                       textAlign: TextAlign.center,
                                     ),
-                                    Text(member.location ?? ""),
+                                    Text(member.location ?? "", style: Theme.of(context).textTheme.bodySmall),
                                   ],
                                 ),
                               ),
@@ -316,36 +377,47 @@ class MatchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AllianceBox(
-          label: "Red Alliance",
-          color: Colors.red,
-          teams: [match.red1, match.red2, match.red3].whereType<int>().toList(),
-          teamNum: teamNum,
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: InkWell(
+        onTap: () => launchUrl(Uri.parse("https://www.thebluealliance.com/match/${match.matchKey}")),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                match.getMatchName(),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              AllianceBox(
+                label: "Red Alliance",
+                color: Colors.red,
+                teams: [match.red1, match.red2, match.red3].whereType<int>().toList(),
+                teamNum: teamNum,
               ),
-              const Text("VS"),
-              Text(timeStr),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    Text(
+                      match.getMatchName(),
+                      style: Theme.of(context).textTheme.titleSmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    Text("VS", style: Theme.of(context).textTheme.labelMedium),
+                    Text(timeStr, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              AllianceBox(
+                label: "Blue Alliance",
+                color: Colors.blue,
+                teams: [match.blue1, match.blue2, match.blue3].whereType<int>().toList(),
+                teamNum: teamNum,
+              ),
             ],
           ),
         ),
-        AllianceBox(
-          label: "Blue Alliance",
-          color: Colors.blue,
-          teams: [match.blue1, match.blue2, match.blue3].whereType<int>().toList(),
-          teamNum: teamNum,
-        ),
-      ],
+      ),
     );
   }
 }
@@ -368,7 +440,9 @@ class AllianceBox extends StatelessWidget {
         Text(
           label,
           textAlign: TextAlign.center,
-          style: TextStyle(color: color, fontWeight: isOurs ? FontWeight.bold : null),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(color: color, fontWeight: isOurs ? FontWeight.w700 : null),
         ),
         Text(teams.join(" "), textAlign: TextAlign.center),
       ],
@@ -380,6 +454,7 @@ class AllianceBox extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: color),
+          color: color.withAlpha(25),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Padding(padding: const EdgeInsets.all(5), child: content),

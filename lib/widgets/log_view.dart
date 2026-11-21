@@ -14,7 +14,7 @@ class LogView extends StatelessWidget {
           ..sort((a, b) => b.timestamp!.compareTo(a.timestamp!));
 
         if (logs.isEmpty) {
-          return const Center(child: Text("No logs yet"));
+          return Center(child: Text("No logs yet", style: Theme.of(context).textTheme.bodyLarge));
         }
 
         return ListView.builder(
