@@ -45,6 +45,7 @@ dependencies:
   flutter_widget_from_html: ^0.17.2
   web_socket_channel: ^3.0.3
   url_launcher: ^6.3.3
+  material_ui: ^1.11.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

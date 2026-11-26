@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:lasertracker/core/layout.dart';
 import 'package:lasertracker/widgets/batteries_view.dart';
 import 'package:lasertracker/widgets/log_view.dart';
